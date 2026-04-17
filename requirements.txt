@@ -2,8 +2,4 @@ numpy
 pandas
 python-dotenv
 datetime
-openai
-anthropic
-google
-genai
 json
