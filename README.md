@@ -7,6 +7,14 @@
 2. Starts fetching movie data from the next day
 3. Appends the new records to `data/tmdb_movies.csv`
 
+[get_movies.py lines 45–72](https://github.com/shuseiyokoi/DSCI549/blob/main/src/get_movies.py#L46-L49).
+
+```python
+        total_pages = movie_data.get("total_pages", 1)
+        if page >= total_pages or page >= 5:
+            break
+```
+
 You can control how much data to fetch by changing the iteration values in the script.  
 Fetching 200 pages usually takes about 5 minutes.
 
