@@ -7,7 +7,7 @@
 2. Starts fetching movie data from the next day
 3. Appends the new records to `data/tmdb_movies.csv`
 
-[get_movies.py lines 45–72](https://github.com/shuseiyokoi/DSCI549/blob/main/src/get_movies.py#L46-L49).
+[get_movies.py lines 46-48](https://github.com/shuseiyokoi/DSCI549/blob/main/src/get_movies.py#L46-L48).
 
 ```python
         total_pages = movie_data.get("total_pages", 1)
