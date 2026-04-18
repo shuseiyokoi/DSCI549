@@ -44,7 +44,7 @@ def get_movies(start_date=DEFAULT_START_DATE, end_date=END_DATE):
         print(f"Fetched page {page}")
 
         total_pages = movie_data.get("total_pages", 1)
-        if page >= total_pages or page >= 1000:
+        if page >= total_pages or page >= 200:
             break
 
         page += 1
