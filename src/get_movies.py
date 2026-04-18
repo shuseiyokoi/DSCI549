@@ -44,7 +44,7 @@ def get_movies(start_date=DEFAULT_START_DATE, end_date=END_DATE):
         print(f"Fetched page {page}")
 
         total_pages = movie_data.get("total_pages", 1)
-        if page >= total_pages or page >= 5:
+        if page >= total_pages or page >= 1000:
             break
 
         page += 1
@@ -78,6 +78,12 @@ def get_movie_info(movie_id):
         "countries": [
             c["iso_3166_1"] for c in info_get.get("production_countries", [])
         ],
+        "status": info_get.get("status"),
+        "overview": info_get.get("overview"),
+        "popularity": info_get.get("popularity"),
+        "vote_average": info_get.get("vote_average"),
+        "vote_count": info_get.get("vote_count"),
+        "tagline": info_get.get("tagline"),
         "genres": [g["name"] for g in info_get.get("genres", [])],
         "production_companies": [
             c["name"] for c in info_get.get("production_companies", [])
