@@ -1,9 +1,10 @@
 import pandas as pd
 import ast
+import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.preprocessing import MultiLabelBinarizer
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, mean_absolute_error
 
 df = pd.read_csv("data/tmdb_movies.csv")
 
@@ -17,8 +18,13 @@ df = df.dropna(subset=["release_date"])
 df["roi"] = df["revenue"] / df["budget"]
 df["roi"] = df["roi"].clip(upper=10)
 
+# classification target
 df["success"] = (df["roi"] > 2).astype(int)
 
+# regression target (log for stability)
+df["roi_log"] = np.log1p(df["roi"])
+
+# time features
 df["year"] = df["release_date"].dt.year
 df["month"] = df["release_date"].dt.month
 
@@ -52,35 +58,45 @@ features = [
 ] + list(genre_df.columns)
 
 X = df[features]
-y = df["success"]
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
+# targets
+y_clf = df["success"]
+y_reg = df["roi_log"]
+
+X_train, X_test, y_clf_train, y_clf_test, y_reg_train, y_reg_test = train_test_split(
+    X, y_clf, y_reg, test_size=0.2, random_state=42
 )
+clf_model = RandomForestClassifier(n_estimators=150, random_state=42)
+clf_model.fit(X_train, y_clf_train)
 
-model = RandomForestClassifier(n_estimators=150, random_state=42)
-model.fit(X_train, y_train)
+reg_model = RandomForestRegressor(n_estimators=150, random_state=42)
+reg_model.fit(X_train, y_reg_train)
 
-preds = model.predict(X_test)
+clf_preds = clf_model.predict(X_test)
+reg_preds = reg_model.predict(X_test)
 
-print("Accuracy:", accuracy_score(y_test, preds))
+print("Classification Accuracy:", accuracy_score(y_clf_test, clf_preds))
+print("ROI MAE:", mean_absolute_error(y_reg_test, reg_preds))
 
-new_movie = pd.DataFrame(columns=X.columns)
+new_movie = pd.DataFrame([[0]*len(X.columns)], columns=X.columns)
 
-new_movie.loc[0] = 0
-
-new_movie["budget"] = 40000000
-new_movie["runtime"] = 110
-new_movie["popularity"] = 40
-new_movie["vote_average"] = 6.5
-new_movie["vote_count"] = 500
-new_movie["year"] = 2025
-new_movie["month"] = 7
+new_movie.loc[0, "budget"] = 40000000
+new_movie.loc[0, "runtime"] = 110
+new_movie.loc[0, "popularity"] = 40
+new_movie.loc[0, "vote_average"] = 6.5
+new_movie.loc[0, "vote_count"] = 500
+new_movie.loc[0, "year"] = 2025
+new_movie.loc[0, "month"] = 7
 
 for genre in ["Action", "Adventure"]:
     if genre in new_movie.columns:
-        new_movie[genre] = 1
+        new_movie.loc[0, genre] = 1
 
-prediction = model.predict(new_movie)
 
-print("Prediction:", prediction[0])
+success_pred = clf_model.predict(new_movie)[0]
+
+roi_log_pred = reg_model.predict(new_movie)[0]
+roi_pred = np.expm1(roi_log_pred)
+
+print("\nPredicted Success (1=Hit, 0=Flop):", success_pred)
+print("Predicted ROI:", round(roi_pred, 2))
