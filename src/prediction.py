@@ -18,13 +18,10 @@ df = df.dropna(subset=["release_date"])
 df["roi"] = df["revenue"] / df["budget"]
 df["roi"] = df["roi"].clip(upper=10)
 
-# classification target
 df["success"] = (df["roi"] > 2).astype(int)
 
-# regression target (log for stability)
 df["roi_log"] = np.log1p(df["roi"])
 
-# time features
 df["year"] = df["release_date"].dt.year
 df["month"] = df["release_date"].dt.month
 
@@ -47,6 +44,31 @@ genre_df = pd.DataFrame(
 
 df = pd.concat([df, genre_df], axis=1)
 
+def extract_companies(x):
+    try:
+        items = ast.literal_eval(x)
+        return [c["name"] for c in items]
+    except:
+        return []
+
+df["company_names"] = df["production_companies"].apply(extract_companies)
+
+all_companies = pd.Series([c for sub in df["company_names"] for c in sub])
+
+top_companies = all_companies.value_counts().head(100).index
+
+df["company_filtered"] = df["company_names"].apply(
+    lambda lst: [c for c in lst if c in top_companies]
+)
+
+mlb_comp = MultiLabelBinarizer()
+
+comp_df = pd.DataFrame(
+    mlb_comp.fit_transform(df["company_filtered"]),
+    columns=["comp_" + c for c in mlb_comp.classes_],
+    index=df.index
+)
+
 features = [
     "budget",
     "runtime",
@@ -59,7 +81,6 @@ features = [
 
 X = df[features]
 
-# targets
 y_clf = df["success"]
 y_reg = df["roi_log"]
 
@@ -92,6 +113,10 @@ for genre in ["Action", "Adventure"]:
     if genre in new_movie.columns:
         new_movie.loc[0, genre] = 1
 
+for comp in ["Warner Bros.", "Universal Pictures"]:
+    col_name = "comp_" + comp
+    if col_name in new_movie.columns:
+        new_movie.loc[0, col_name] = 1
 
 success_pred = clf_model.predict(new_movie)[0]
 
