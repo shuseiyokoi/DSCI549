@@ -78,7 +78,7 @@ reg_preds = reg_model.predict(X_test)
 print("Classification Accuracy:", accuracy_score(y_clf_test, clf_preds))
 print("ROI MAE:", mean_absolute_error(y_reg_test, reg_preds))
 
-new_movie = pd.DataFrame([[0]*len(X.columns)], columns=X.columns)
+new_movie = pd.DataFrame([[0.0]*len(X.columns)], columns=X.columns)
 
 new_movie.loc[0, "budget"] = 40000000
 new_movie.loc[0, "runtime"] = 110
