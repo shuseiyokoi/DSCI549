@@ -6,87 +6,94 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.metrics import accuracy_score, mean_absolute_error
 
-df = pd.read_csv("data/tmdb_movies_with_llm_rating.csv")
 
-df = df[df["budget"] > 1000]
-df = df[df["revenue"] > 1000]
-df = df[df["runtime"] > 40]
+def predict_model():
+    df = pd.read_csv("../data/tmdb_movies_with_llm_rating.csv")
 
-df["release_date"] = pd.to_datetime(df["release_date"], errors="coerce")
-df = df.dropna(subset=["release_date"])
+    df = df[df["budget"] > 1000]
+    df = df[df["revenue"] > 1000]
+    df = df[df["runtime"] > 40]
 
-df["overview_rating"] = df["overview_rating"].fillna(df["overview_rating"].median())
-df["roi"] = (df["revenue"] / df["budget"]).clip(upper=10)
-df["success"] = (df["roi"] > 2).astype(int)
-df["roi_log"] = np.log1p(df["roi"])
+    df["release_date"] = pd.to_datetime(df["release_date"], errors="coerce")
+    df = df.dropna(subset=["release_date"])
 
-df["year"] = df["release_date"].dt.year
-df["month"] = df["release_date"].dt.month
+    df["overview_rating"] = df["overview_rating"].fillna(df["overview_rating"].median())
+    df["roi"] = (df["revenue"] / df["budget"]).clip(upper=10)
+    df["success"] = (df["roi"] > 2).astype(int)
+    df["roi_log"] = np.log1p(df["roi"])
 
-def extract_genres(x):
-    try:
-        items = ast.literal_eval(x)
-        return [g["name"] for g in items if isinstance(g, dict)]
-    except:
-        return []
+    df["year"] = df["release_date"].dt.year
+    df["month"] = df["release_date"].dt.month
 
-df["genre_names"] = df["genres"].apply(extract_genres)
+    def extract_genres(x):
+        try:
+            items = ast.literal_eval(x)
+            return [g["name"] for g in items if isinstance(g, dict)]
+        except:
+            return []
 
-mlb = MultiLabelBinarizer()
-genre_df = pd.DataFrame(
-    mlb.fit_transform(df["genre_names"]),
-    columns=mlb.classes_,
-    index=df.index
-)
+    df["genre_names"] = df["genres"].apply(extract_genres)
 
-def extract_companies(x):
-    try:
-        items = ast.literal_eval(x)
-        return [c["name"] for c in items]
-    except:
-        return []
+    mlb = MultiLabelBinarizer()
+    genre_df = pd.DataFrame(
+        mlb.fit_transform(df["genre_names"]), columns=mlb.classes_, index=df.index
+    )
 
-df["company_names"] = df["production_companies"].apply(extract_companies)
+    def extract_companies(x):
+        try:
+            items = ast.literal_eval(x)
+            return [c["name"] for c in items]
+        except:
+            return []
 
-all_companies = pd.Series([c for sub in df["company_names"] for c in sub])
-top_companies = all_companies.value_counts().head(100).index
+    df["company_names"] = df["production_companies"].apply(extract_companies)
 
-df["company_filtered"] = df["company_names"].apply(
-    lambda lst: [c for c in lst if c in top_companies]
-)
+    all_companies = pd.Series([c for sub in df["company_names"] for c in sub])
+    top_companies = all_companies.value_counts().head(100).index
 
-mlb_comp = MultiLabelBinarizer()
-comp_df = pd.DataFrame(
-    mlb_comp.fit_transform(df["company_filtered"]),
-    columns=["comp_" + c for c in mlb_comp.classes_],
-    index=df.index
-)
+    df["company_filtered"] = df["company_names"].apply(
+        lambda lst: [c for c in lst if c in top_companies]
+    )
 
-X = pd.concat([
-    df[["budget",
-        "runtime",
-        "year",
-        "month",
-        "overview_rating"]],
-    genre_df,
-    comp_df
-], axis=1)
+    mlb_comp = MultiLabelBinarizer()
+    comp_df = pd.DataFrame(
+        mlb_comp.fit_transform(df["company_filtered"]),
+        columns=["comp_" + c for c in mlb_comp.classes_],
+        index=df.index,
+    )
 
-y_clf = df["success"]
-y_reg = df["roi_log"]
+    X = pd.concat(
+        [
+            df[["budget", "runtime", "year", "month", "overview_rating"]],
+            genre_df,
+            comp_df,
+        ],
+        axis=1,
+    )
 
-X_train, X_test, y_clf_train, y_clf_test, y_reg_train, y_reg_test = train_test_split(
-    X, y_clf, y_reg, test_size=0.2, random_state=42
-)
+    y_clf = df["success"]
+    y_reg = df["roi_log"]
 
-clf_model = RandomForestClassifier(n_estimators=150, random_state=42)
-clf_model.fit(X_train, y_clf_train)
+    X_train, X_test, y_clf_train, y_clf_test, y_reg_train, y_reg_test = (
+        train_test_split(X, y_clf, y_reg, test_size=0.2, random_state=42)
+    )
 
-reg_model = RandomForestRegressor(n_estimators=150, random_state=42)
-reg_model.fit(X_train, y_reg_train)
+    clf_model = RandomForestClassifier(n_estimators=150, random_state=42)
+    clf_model.fit(X_train, y_clf_train)
 
-clf_preds = clf_model.predict(X_test)
-reg_preds = reg_model.predict(X_test)
+    reg_model = RandomForestRegressor(n_estimators=150, random_state=42)
+    reg_model.fit(X_train, y_reg_train)
 
-print("Classification Accuracy:", accuracy_score(y_clf_test, clf_preds))
-print("ROI MAE:", mean_absolute_error(y_reg_test, reg_preds))
+    clf_preds = clf_model.predict(X_test)
+    reg_preds = reg_model.predict(X_test)
+
+    print(
+        "Classification Accuracy with over view:", accuracy_score(y_clf_test, clf_preds)
+    )
+    print("ROI MAE with over view:", mean_absolute_error(y_reg_test, reg_preds))
+
+    return clf_model, reg_model, X_train.columns
+
+
+if __name__ == "__main__":
+    clf_model, reg_model, feature_columns = predict_model()
