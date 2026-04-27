@@ -8,7 +8,7 @@ from sklearn.metrics import accuracy_score, mean_absolute_error
 
 
 def predict_model():
-    df = pd.read_csv("../data/tmdb_movies_with_llm_rating.csv")
+    df = pd.read_csv("data/tmdb_movies_with_llm_rating.csv")
 
     df = df[df["budget"] > 1000]
     df = df[df["revenue"] > 1000]
@@ -26,9 +26,10 @@ def predict_model():
     df["month"] = df["release_date"].dt.month
 
     def extract_genres(x):
+        if pd.isna(x):
+            return []
         try:
-            items = ast.literal_eval(x)
-            return [g["name"] for g in items if isinstance(g, dict)]
+            return ast.literal_eval(x)
         except:
             return []
 
@@ -40,12 +41,13 @@ def predict_model():
     )
 
     def extract_companies(x):
+        if pd.isna(x):
+            return []
         try:
-            items = ast.literal_eval(x)
-            return [c["name"] for c in items]
+            return ast.literal_eval(x)
         except:
             return []
-
+        
     df["company_names"] = df["production_companies"].apply(extract_companies)
 
     all_companies = pd.Series([c for sub in df["company_names"] for c in sub])

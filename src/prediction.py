@@ -8,7 +8,7 @@ from sklearn.metrics import accuracy_score, mean_absolute_error
 
 
 def predict():
-    df = pd.read_csv("../data/tmdb_movies.csv")
+    df = pd.read_csv("data/tmdb_movies.csv")
 
     df = df[df["budget"] > 1000]
     df = df[df["revenue"] > 1000]
@@ -20,7 +20,7 @@ def predict():
     df["roi"] = df["revenue"] / df["budget"]
     df["roi"] = df["roi"].clip(upper=10)
 
-    df["success"] = (df["roi"] > 2).astype(int)
+    df["success"] = (df["roi"] > 1.5).astype(int)
 
     df["roi_log"] = np.log1p(df["roi"])
 
@@ -28,9 +28,10 @@ def predict():
     df["month"] = df["release_date"].dt.month
 
     def extract_genres(x):
+        if pd.isna(x):
+            return []
         try:
-            items = ast.literal_eval(x)
-            return [g["name"] for g in items if isinstance(g, dict)]
+            return ast.literal_eval(x)
         except:
             return []
 
@@ -45,9 +46,10 @@ def predict():
     df = pd.concat([df, genre_df], axis=1)
 
     def extract_companies(x):
+        if pd.isna(x):
+            return []
         try:
-            items = ast.literal_eval(x)
-            return [c["name"] for c in items]
+            return ast.literal_eval(x)
         except:
             return []
 
@@ -69,6 +71,8 @@ def predict():
         index=df.index,
     )
 
+    df = pd.concat([df, comp_df], axis=1)
+
     features = [
         "budget",
         "runtime",
@@ -77,7 +81,7 @@ def predict():
         # "vote_count",
         "year",
         "month",
-    ] + list(genre_df.columns)
+    ] + list(genre_df.columns) + list(comp_df.columns)
 
     X = df[features]
 
@@ -98,36 +102,6 @@ def predict():
 
     print("Classification Accuracy:", accuracy_score(y_clf_test, clf_preds))
     print("ROI MAE:", mean_absolute_error(y_reg_test, reg_preds))
-
-    new_movie = pd.DataFrame([[0.0] * len(X.columns)], columns=X.columns)
-
-    new_movie.loc[0, "budget"] = 40000000
-    new_movie.loc[0, "runtime"] = 110
-    # new_movie.loc[0, "popularity"] = 40
-    # new_movie.loc[0, "vote_average"] = 6.5
-    # new_movie.loc[0, "vote_count"] = 500
-    new_movie.loc[0, "year"] = 2025
-    new_movie.loc[0, "month"] = 7
-
-    for genre in ["Action", "Adventure"]:
-        if genre in new_movie.columns:
-            new_movie.loc[0, genre] = 1
-
-    for comp in ["Warner Bros.", "Universal Pictures"]:
-        col_name = "comp_" + comp
-        if col_name in new_movie.columns:
-            new_movie.loc[0, col_name] = 1
-
-    success_pred = clf_model.predict(new_movie)[0]
-
-    roi_log_pred = reg_model.predict(new_movie)[0]
-    roi_pred = np.expm1(roi_log_pred)
-
-    print("\nPredicted Success (1=Hit, 0=Flop):", success_pred)
-    print("Predicted ROI:", round(roi_pred, 2))
-
-    return success_pred, roi_pred
-
 
 if __name__ == "__main__":
     predict()
