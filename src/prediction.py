@@ -6,8 +6,9 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.metrics import accuracy_score, mean_absolute_error
 
+
 def predict_model():
-    df = pd.read_csv("data/tmdb_movies.csv")
+    df = pd.read_csv("../data/tmdb_movies_with_llm_rating.csv")
 
     df = df[df["budget"] > 10000]
     df = df[df["revenue"] > 10000]
@@ -18,7 +19,9 @@ def predict_model():
 
     df["budget_log"] = np.log1p(df["budget"])
 
-    df["roi"] = ((df["revenue"] - df["budget"]) / df["budget"]).clip(lower=-0.99, upper=10)
+    df["roi"] = ((df["revenue"] - df["budget"]) / df["budget"]).clip(
+        lower=-0.99, upper=10
+    )
     df["success"] = (df["roi"] > 1.5).astype(int)
     df["roi_log"] = np.log1p(df["roi"])
 
@@ -47,7 +50,7 @@ def predict_model():
             return ast.literal_eval(x)
         except:
             return []
-        
+
     df["company_names"] = df["production_companies"].apply(extract_companies)
 
     all_companies = pd.Series([c for sub in df["company_names"] for c in sub])
@@ -80,7 +83,13 @@ def predict_model():
         train_test_split(X, y_clf, y_reg, test_size=0.2, random_state=42)
     )
 
-    clf_model = RandomForestClassifier(n_estimators=200, min_samples_split= 20, random_state=42, class_weight="balanced", n_jobs=-1)
+    clf_model = RandomForestClassifier(
+        n_estimators=200,
+        min_samples_split=20,
+        random_state=42,
+        class_weight="balanced",
+        n_jobs=-1,
+    )
     clf_model.fit(X_train, y_clf_train)
 
     reg_model = RandomForestRegressor(n_estimators=200, random_state=42)
@@ -103,8 +112,11 @@ def predict_model():
     baseline_roi_preds = np.expm1(baseline_preds)
     print("Baseline ROI MAE:", mean_absolute_error(roi_true, baseline_roi_preds))
 
-    improvement = (mean_absolute_error(roi_true, baseline_roi_preds) - mean_absolute_error(roi_true, roi_preds)) / mean_absolute_error(roi_true, baseline_roi_preds)
-    
+    improvement = (
+        mean_absolute_error(roi_true, baseline_roi_preds)
+        - mean_absolute_error(roi_true, roi_preds)
+    ) / mean_absolute_error(roi_true, baseline_roi_preds)
+
     print(f"ROI MAE improvement over baseline: {improvement:.2%}")
 
     new_movie = {
@@ -112,11 +124,9 @@ def predict_model():
         "runtime": 100,
         "year": 2019,
         "month": 8,
-
         "Action": 1,
         "Adventure": 1,
         "Science Fiction": 1,
-
         "comp_Warner Bros. Pictures": 1,
         "comp_Legendary Pictures": 1,
     }
@@ -139,8 +149,7 @@ def predict_model():
     print(f"Predicted ROI: {roi:.2f}")
     print(f"Hit or Flop (based on ROI): {label}")
     print(f"Classifier success probability: {clf_prob:.2f}")
-    
-    
+
     return clf_model, reg_model, X_train.columns
 
 

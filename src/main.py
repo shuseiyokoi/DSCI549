@@ -1,7 +1,7 @@
-from prediction import predict
-from prediction_model import predict_model
+from prediction import predict_model
+from prediction_model import predict_model_with_ai
 
-
-predict()
 
 predict_model()
+
+predict_model_with_ai()
