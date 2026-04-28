@@ -106,10 +106,7 @@ def predict_model():
     baseline_roi_preds = np.expm1(baseline_preds)
     print("Baseline ROI MAE:", mean_absolute_error(roi_true, baseline_roi_preds))
 
-    model_mae = mean_absolute_error(roi_true, roi_preds)
-    baseline_mae = mean_absolute_error(roi_true, baseline_roi_preds)
-
-    improvement = (baseline_mae - model_mae) / baseline_mae
+    improvement = (mean_absolute_error(roi_true, baseline_roi_preds) - mean_absolute_error(roi_true, roi_preds)) / mean_absolute_error(roi_true, baseline_roi_preds)
     
     print(f"Improvement over baseline: {improvement:.2%}")
 
