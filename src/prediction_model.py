@@ -18,7 +18,7 @@ def predict_model():
     df = df.dropna(subset=["release_date"])
 
     df["overview_rating"] = df["overview_rating"].fillna(df["overview_rating"].median())
-    df["roi"] = (df["revenue"] / df["budget"]).clip(upper=10)
+    df["roi"] = ((df["revenue"] - df["budget"]) / df["budget"]).clip(upper=10)
     df["success"] = (df["roi"] > 2).astype(int)
     df["roi_log"] = np.log1p(df["roi"])
 

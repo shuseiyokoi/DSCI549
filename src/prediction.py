@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.metrics import accuracy_score, mean_absolute_error
-
+from matplotlib.patches import Rectangle
 
 def predict():
     df = pd.read_csv("data/tmdb_movies.csv")
@@ -17,7 +17,7 @@ def predict():
     df["release_date"] = pd.to_datetime(df["release_date"], errors="coerce")
     df = df.dropna(subset=["release_date"])
 
-    df["roi"] = df["revenue"] / df["budget"]
+    df["roi"] = (df["revenue"]- df["budget"]) / df["budget"]
     df["roi"] = df["roi"].clip(upper=10)
 
     df["success"] = (df["roi"] > 1.5).astype(int)
