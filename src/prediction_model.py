@@ -10,16 +10,19 @@ from sklearn.metrics import accuracy_score, mean_absolute_error
 def predict_model():
     df = pd.read_csv("data/tmdb_movies_with_llm_rating.csv")
 
-    df = df[df["budget"] > 1000]
-    df = df[df["revenue"] > 1000]
-    df = df[df["runtime"] > 40]
+    df = df[df["budget"] > 10000]
+    df = df[df["revenue"] > 10000]
+    df = df[df["runtime"] > 30]
 
     df["release_date"] = pd.to_datetime(df["release_date"], errors="coerce")
     df = df.dropna(subset=["release_date"])
 
     df["overview_rating"] = df["overview_rating"].fillna(df["overview_rating"].median())
-    df["roi"] = ((df["revenue"] - df["budget"]) / df["budget"]).clip(upper=10)
-    df["success"] = (df["roi"] > 2).astype(int)
+
+    df["budget_log"] = np.log1p(df["budget"])
+
+    df["roi"] = ((df["revenue"] - df["budget"]) / df["budget"]).clip(lower=-0.99, upper=10)
+    df["success"] = (df["roi"] > 1.5).astype(int)
     df["roi_log"] = np.log1p(df["roi"])
 
     df["year"] = df["release_date"].dt.year
@@ -66,7 +69,7 @@ def predict_model():
 
     X = pd.concat(
         [
-            df[["budget", "runtime", "year", "month", "overview_rating"]],
+            df[["budget_log", "runtime", "year", "month", "overview_rating"]],
             genre_df,
             comp_df,
         ],
@@ -80,10 +83,10 @@ def predict_model():
         train_test_split(X, y_clf, y_reg, test_size=0.2, random_state=42)
     )
 
-    clf_model = RandomForestClassifier(n_estimators=150, random_state=42)
+    clf_model = RandomForestClassifier(n_estimators=200, min_samples_split= 20, random_state=42, class_weight="balanced", n_jobs=-1)
     clf_model.fit(X_train, y_clf_train)
 
-    reg_model = RandomForestRegressor(n_estimators=150, random_state=42)
+    reg_model = RandomForestRegressor(n_estimators=200, random_state=42)
     reg_model.fit(X_train, y_reg_train)
 
     clf_preds = clf_model.predict(X_test)
@@ -92,7 +95,20 @@ def predict_model():
     print(
         "Classification Accuracy with over view:", accuracy_score(y_clf_test, clf_preds)
     )
-    print("ROI MAE with over view:", mean_absolute_error(y_reg_test, reg_preds))
+    roi_preds = np.expm1(reg_preds)
+    roi_true = np.expm1(y_reg_test)
+
+    print("ROI MAE with overview:", mean_absolute_error(roi_true, roi_preds))
+
+    baseline = y_reg_train.mean()
+    baseline_preds = [baseline] * len(y_reg_test)
+
+    baseline_roi_preds = np.expm1(baseline_preds)
+    print("Baseline ROI MAE with overview:", mean_absolute_error(roi_true, baseline_roi_preds))
+
+    improvement = (mean_absolute_error(roi_true, baseline_roi_preds) - mean_absolute_error(roi_true, roi_preds)) / mean_absolute_error(roi_true, baseline_roi_preds)
+    
+    print(f"ROI MAE improvement over baseline: {improvement:.2%}")
 
     return clf_model, reg_model, X_train.columns
 
