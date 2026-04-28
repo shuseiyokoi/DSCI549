@@ -108,7 +108,7 @@ def predict_model():
 
     improvement = (mean_absolute_error(roi_true, baseline_roi_preds) - mean_absolute_error(roi_true, roi_preds)) / mean_absolute_error(roi_true, baseline_roi_preds)
     
-    print(f"Improvement over baseline: {improvement:.2%}")
+    print(f"ROI MAE improvement over baseline: {improvement:.2%}")
 
     return clf_model, reg_model, X_train.columns
 
