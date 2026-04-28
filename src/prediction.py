@@ -137,8 +137,8 @@ def predict_model():
 
     print("\n--- New Movie Prediction ---")
     print(f"Predicted ROI: {roi:.2f}")
-    print(f"Result (based on ROI): {label}")
-    print(f"Classifier probability: {clf_prob:.2f}")
+    print(f"Hit or Flop (based on ROI): {label}")
+    print(f"Classifier success probability: {clf_prob:.2f}")
     
     
     return clf_model, reg_model, X_train.columns

@@ -98,13 +98,13 @@ def predict_model():
     roi_preds = np.expm1(reg_preds)
     roi_true = np.expm1(y_reg_test)
 
-    print("ROI MAE with over view:", mean_absolute_error(roi_true, roi_preds))
+    print("ROI MAE with overview:", mean_absolute_error(roi_true, roi_preds))
 
     baseline = y_reg_train.mean()
     baseline_preds = [baseline] * len(y_reg_test)
 
     baseline_roi_preds = np.expm1(baseline_preds)
-    print("Baseline ROI MAE:", mean_absolute_error(roi_true, baseline_roi_preds))
+    print("Baseline ROI MAE with overview:", mean_absolute_error(roi_true, baseline_roi_preds))
 
     improvement = (mean_absolute_error(roi_true, baseline_roi_preds) - mean_absolute_error(roi_true, roi_preds)) / mean_absolute_error(roi_true, baseline_roi_preds)
     
