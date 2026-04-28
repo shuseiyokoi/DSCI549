@@ -10,10 +10,10 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Your fine-tuned model
-MODEL = "ft:gpt-3.5-turbo-0125:datify::DXzk8rSS"
+MODEL = "gpt-3.5-turbo"
 
 INPUT_PATH = "../data/tmdb_movies.csv"
-OUTPUT_PATH = "../data/tmdb_movies_with_llm_rating.csv"
+OUTPUT_PATH = "../data/tmdb_movies_with_llm_rating_base_model.csv"
 
 
 def extract_integer(text):
@@ -63,7 +63,7 @@ Overview:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a movie ROI evaluator. You only output one integer from 0 to 100.",
+                    "content": "You are a movie ROI evaluator. Based on overview of movies, you would give rating 0 to 100. You only output one integer from 0 to 100.",
                 },
                 {"role": "user", "content": prompt},
             ],
